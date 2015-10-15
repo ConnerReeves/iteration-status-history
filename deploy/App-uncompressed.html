@@ -7,6 +7,387 @@
 
     <script type="text/javascript">
         Rally.onReady(function () {
+                (function() {
+    var Ext = window.Ext4 || window.Ext;
+
+    /**
+     * gauge chart for stats banner
+     * abstract class
+     */
+    Ext.define('Gauge', {
+        extend: 'Ext.Component',
+        alias:'widget.statsbannergauge',
+
+        requires: [
+            'Rally.ui.chart.Chart',
+            'Rally.util.Timebox',
+            'Rally.util.Colors'
+        ],
+
+        config: {
+            context: null,
+            store: null
+        },
+
+        getChartEl: Ext.emptyFn,
+        _getChartConfig: Ext.emptyFn,
+
+        _tzOffsetPromises: {},
+        
+        cls: 'stat-panel',
+
+        onRender: function() {
+            this.callParent(arguments);
+            if (!this.getContext().getTimeboxScope().getRecord()) {
+                this._addEmptyChart();
+            }
+        },
+
+        _addEmptyChart: function() {
+            this._cleanupChart();
+            this._addChart({
+                chartData: {
+                    series: [{
+                        data: [
+                            {
+                                name: '',
+                                y: 100,
+                                color: Rally.util.Colors.grey1
+                            }
+                        ]
+                    }]
+                }
+            });
+        },
+
+        _cleanupChart: function () {
+            if (this.chart) {
+                this.chart.destroy();
+                delete this.chart;
+            }
+        },
+
+        onDestroy: function () {
+            this._cleanupChart();
+            this.callParent(arguments);
+        },
+
+        onResize: function() {
+            if (this.chart && !this.getEl().up('.stats-banner.collapsed')) {
+                this.chart.updateLayout();
+            }
+            this.callParent(arguments);
+        },
+
+        refreshChart: function(chartConfig) {
+            Ext.suspendLayouts();
+            this._cleanupChart();
+            if (this.rendered) {
+                this._addChart(chartConfig);
+            }
+            Ext.resumeLayouts();
+            this.fireEvent('ready', this);
+        },
+
+        _addChart: function(chartConfig) {
+            var height = 62;
+            this.chart = Ext.create('Rally.ui.chart.Chart', Ext.apply({
+                loadMask: false,
+                renderTo: this.getChartEl(),
+                cls: 'gauge',
+                chartConfig: {
+                    chart: {
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                        defaultSeriesType: 'pie',
+                        height: height,
+                        spacingTop: 0,
+                        spacingRight: 0,
+                        spacingBottom: 0,
+                        spacingLeft: 0
+                    },
+                    plotOptions: {
+                        pie: {
+                            borderWidth: 0,
+                            center: ['50%', '50%'],
+                            dataLabels: {
+                                enabled: false
+                            },
+                            size: height - 4,
+                            innerSize: height - 14,
+                            enableMouseTracking: false, //turns off chart hover, but for tooltips you'll need this on
+                            shadow: false
+                        }
+                    },
+                    title: '',
+                    tooltip: {
+                        enabled: false
+                    }
+                }
+            }, chartConfig));
+        }
+
+        /*getTimeboxData: function() {
+            return this._getTZOffset().then({
+                success: function (tzOffset) {
+                    var timebox = this.getContext().getTimeboxScope().getRecord();
+                    if(timebox) {
+                        return Rally.util.Timebox.getCounts(
+                            timebox.get('ReleaseStartDate'),
+                            timebox.get('ReleaseDate'),
+                            this.getContext().getWorkspace().WorkspaceConfiguration.WorkDays,
+                            tzOffset);
+                    } else {
+                        return {
+                            remaining: 0,
+                            workdays: 0
+                        };
+                    }
+                },
+                scope: this
+            });
+        },
+
+        _getTZOffset: function() {
+            var projectRef = Rally.util.Ref.getRelativeUri(this.getContext().getProject());
+            if (!Ext.isDefined(this._tzOffsetPromises[projectRef])) {
+                var deferred = this._tzOffsetPromises[projectRef] = Ext.create('Deft.Deferred');
+                Rally.environment.getIoProvider().httpGet({
+                    url: Rally.environment.getServer().getWsapiUrl() + '/iteration',
+                    params: {
+                        includeSchema: true,
+                        pagesize:1,
+                        fetch: false,
+                        project: projectRef
+                    },
+                    success: function(results) {
+                        deferred.resolve((results.Schema.properties.EndDate.format.tzOffset || 0) / 60);
+                    },
+                    requester: this,
+                    scope: this
+                });
+            }
+            return this._tzOffsetPromises[projectRef];
+        },
+
+        getAcceptanceData: function () {
+            var acceptanceData = {
+                accepted: 0,
+                total: 0,
+                acceptedCount: 0,
+                count: 0
+            };
+
+            _.each(this.store.getRange(), function (rec) {
+              acceptanceData.accepted += rec.get('AcceptedLeafStoryPlanEstimateTotal');
+              acceptanceData.total += rec.get('LeafStoryPlanEstimateTotal');
+              acceptanceData.acceptedCount += rec.get('AcceptedLeafStoryCount');
+              acceptanceData.count += rec.get('LeafStoryCount');
+            });
+
+            return Deft.Promise.when(acceptanceData);
+        },
+
+        getEstimatedData: function () {
+            var acceptanceData = {
+                accepted: 0,
+                total: 0
+            };
+
+            _.each(this.store.getRange(), function (rec) {
+              acceptanceData.accepted += rec.get('LeafStoryCount') - rec.get('UnEstimatedLeafStoryCount');
+              acceptanceData.total += rec.get('LeafStoryCount');
+            });
+
+            return Deft.Promise.when(acceptanceData);
+        },
+
+        _getScheduleStates: function () {
+            if (this._scheduleStates) {
+                return Deft.Promise.when(this._scheduleStates);
+            } else {
+                return this.store.model.getField('ScheduleState').getAllowedValueStore().load().then({
+                    success: function (records) {
+                        this._scheduleStates = _.map(records, function (record) {
+                            return record.get('StringValue');
+                        });
+                        return this._scheduleStates;
+                    },
+                    scope: this,
+                    requester: this
+                });
+            }
+        }*/
+    });
+})();
+                (function() {
+    var Ext = window.Ext4 || window.Ext;
+
+    /**
+     * shows planned velocity for timebox
+     */
+    Ext.define('PlannedVelocity', {
+        extend: 'Gauge',
+        alias:'widget.statsbannerplannedvelocity',
+        require: ['Rally.util.Colors'],
+
+        tpl: [
+            '<div class="expanded-widget">',
+            '<div class="stat-title">Planned Velocity</div>',
+            '<div class="stat-metric">',
+            '<div class="metric-chart"></div>',
+            '<div class="metric-chart-text percent-offset">',
+            '{percentage}<div class="metric-percent">%</div>',
+            '</div>',
+            '<div class="metric-subtext">{estimate} of {plannedVelocity} {unit}</div>',
+            '</div>',
+            '</div>',
+            '<div class="collapsed-widget">',
+            '<div class="stat-title">Planned Velocity</div>',
+            '<div class="stat-metric">{percentage}<span class="metric-percent">%</span></div>',
+            '</div>'
+        ],
+
+        config: {
+            data: {
+                percentage: 0,
+                estimate: 0,
+                plannedVelocity: 0,
+                unit: ''
+            }
+        },
+
+        onRender: function() {
+            this.callParent(arguments);
+            var renderData = this._getRenderData();
+            this.update(renderData);
+
+            this.refreshChart(this._getChartConfig(renderData));
+        },
+
+        getChartEl: function() {
+            return this.getEl().down('.metric-chart');
+        },
+
+        _getTimeboxUnits: function() {
+            return this.getContext().getTimeboxScope().getType() === 'iteration' ?
+                this.getContext().getWorkspace().WorkspaceConfiguration.IterationEstimateUnitName :
+                this.getContext().getWorkspace().WorkspaceConfiguration.ReleaseEstimateUnitName;
+        },
+
+        _getRenderData: function() {
+            var estimate = _.reduce(this.snapshotData, function(accum, record) {
+                return accum + (record.get('PlanEstimate') || 0);
+            }, 0);
+
+            estimate = Math.round(estimate * 100) / 100;
+
+            var timeboxRecord = this.getContext().getTimeboxScope().getRecord();
+
+            var plannedVelocity = _.reduce(this.iterations, function(accum, record) {
+                return accum + (record.get('PlannedVelocity') || 0);
+            }, 0);
+
+            var percentage = plannedVelocity === 0 ? 0 : Math.round(estimate / plannedVelocity * 100);
+
+            var data = {
+                estimate: estimate,
+                percentage: percentage,
+                plannedVelocity: plannedVelocity,
+                unit: this._getTimeboxUnits()
+            };
+
+            return data;
+        },
+
+        _getChartConfig: function(renderData) {
+            var percentage = renderData.percentage,
+                percentagePlanned = percentage % 100 || 100,
+                color = Rally.util.Colors.cyan_med,
+                secondaryColor = Rally.util.Colors.grey1;
+
+            if (percentage > 100) {
+                color = Rally.util.Colors.blue;
+                secondaryColor = Rally.util.Colors.cyan;
+            } else if (percentage > 70) {
+                color = Rally.util.Colors.cyan;
+            } else if (percentage === 0) {
+                color = Rally.util.Colors.grey1;
+            }
+
+            return {
+                chartData: {
+                    series: [{
+                        data: [
+                            {
+                                name: 'Planned Estimate Total',
+                                y: percentagePlanned,
+                                color: color
+                            },
+                            {
+                                name: '',
+                                y: 100 - percentagePlanned,
+                                color: secondaryColor
+                            }
+                        ]
+                    }]
+                }
+            };
+        }
+    });
+})();
+                (function() {
+    var Ext = window.Ext4 || window.Ext;
+
+    /**
+     * Allows user to see stats for a timebox in a horizontal bar format
+     */
+    Ext.define('StatsBanner', {
+        extend: 'Ext.Container',
+        alias:'widget.statsbanner',
+        requires: 'PlannedVelocity',
+        cls: 'stats-banner',
+        layout: 'hbox',
+        border: 0,
+        width: '100%',
+
+        config: {
+            context: null,
+            snapshotData: [],
+            iterations: []
+        },
+
+        items: [
+            {xtype: 'statsbannerplannedvelocity'},
+            {xtype: 'statsbannerplannedvelocity'},
+            {xtype: 'statsbannerplannedvelocity'}
+        ],
+
+
+        initComponent: function() {
+            //need to configure the items at the instance level, not the class level (i.e. don't use the 'defaults' config)
+            this.items = this._configureItems(this.items);
+
+            this.callParent(arguments);
+        },
+
+        _getItemDefaults: function() {
+            return {
+                flex: 1,
+                context: this.context,
+                snapshotData: this.snapshotData,
+                iterations: this.iterations
+            };
+        },
+
+        _configureItems: function(items) {
+            var defaults = this._getItemDefaults();
+
+            return _.map(items, function(item) {
+                return _.defaults(_.cloneDeep(item), defaults);
+            });
+        }
+    });
+})();
                 Ext.define('IterationStatusHistory', {
     extend: 'Rally.app.TimeboxScopedApp',
     componentCls: 'app',
@@ -21,17 +402,24 @@
       this.add({
         flex: 1,
         xtype: 'container',
-        layout: 'vbox',
-        items: [{
-          xtype: 'rallybutton',
-          iconCls: 'icon-right',
-          width: 27,
-          cls: 'rly-small secondary',
-          listeners: {
-            click: this._play,
-            scope: this
-          }
+        layout: {
+          type: 'vbox',
+          align: 'stretch'
         },
+        items: [
+          {
+            xtype: 'container',
+            items: [{
+              xtype: 'rallybutton',
+              iconCls: 'icon-right',
+              width: 27,
+              cls: 'rly-small secondary',
+              listeners: {
+                click: this._play,
+                scope: this
+              }
+            }]
+          },
         {
           xtype: 'container',
           itemId: 'chartContainer',
@@ -58,7 +446,7 @@
       Ext.create('Rally.data.wsapi.Store', {
         autoLoad: true,
         limit: Infinity,
-        fetch: ['StartDate', 'EndDate', 'ObjectID'],
+        fetch: ['StartDate', 'EndDate', 'ObjectID', 'PlannedVelocity'],
         model: 'Iteration',
         filters: [{
           property: 'Name',
@@ -66,11 +454,7 @@
         }],
         listeners: {
           load: function(store, data) {
-            if (data.length) {
-              promise.resolve(_.map(data, function(record) {
-                return record.get('ObjectID');
-              }));
-            }
+            promise.resolve(data);
           }
         }
       });
@@ -78,11 +462,15 @@
       return promise;
     },
 
-    _getSnapshotData: function(iterationOIDs) {
+    _getSnapshotData: function(iterationRecords) {
+      this.iterations = iterationRecords;
       var iteration = this.getContext().getTimeboxScope().getRecord();
       var startDate = iteration.get('StartDate');
       var endDate = iteration.get('EndDate');
       var dateSeries = this._getDateSeries(startDate, endDate);
+      var iterationOIDs = _.map(iterationRecords, function(iterationRecord) {
+        return iterationRecord.getId();
+      });
 
       Deft.Chain.parallel(_.map(dateSeries, function(date) {
         return function() {
@@ -154,7 +542,15 @@
     },
 
     _showCharts: function(data) {
-
+      if(this.down('statsbanner')) {
+        this.down('statsbanner').destroy();
+      }
+      this.down('#chartContainer').add({
+        xtype: 'statsbanner',
+        context: this.getContext(),
+        iterations: this.iterations,
+        snapshotData: data
+      });
     },
 
     _showBoard: function(data) {
@@ -174,7 +570,225 @@
 
 
     <style type="text/css">
-        .app {
+        .stat-panel .collapsed-widget,
+.stat-panel .collapsed-widget > div {
+  display: none;
+}
+.stat-panel .expanded-widget,
+.stat-panel .expanded-widget > div {
+  display: block;
+}
+.stat-panel.collapsed .collapsed-widget,
+.stat-panel.collapsed .collapsed-widget > div {
+  display: inline-block;
+}
+.stat-panel.collapsed .expanded-widget,
+.stat-panel.collapsed .expanded-widget > div {
+  display: none;
+}
+.stats-banner .stat-panel {
+  border-top: 1px solid #d6d6d6;
+  border-left: 1px solid #d6d6d6;
+  border-bottom: 1px solid #d6d6d6;
+  height: 110px;
+  text-align: center;
+}
+.stats-banner .stat-panel:first-child {
+  border-left: 0;
+}
+.stats-banner .stat-panel:last-child {
+  border-left-width: 2px;
+}
+.stats-banner .stat-panel .stat-title {
+  color: #222222;
+  font-family: ProximaNovaSemiBold, Helvetica, Arial;
+  font-size: 14px;
+  padding-top: 5px;
+}
+.stats-banner .stat-panel .stat-metric {
+  color: #666666;
+  font-family: ProximaNovaLight, Helvetica, Arial;
+  font-size: 18px;
+  height: 85px;
+  padding-top: 20px;
+}
+.stats-banner .stat-panel .stat-metric .metric-percent {
+  display: inline;
+  font-size: 12px;
+  vertical-align: super;
+}
+.stats-banner .stat-panel .stat-metric .metric-icon {
+  color: #888888;
+  font-size: 18px;
+  padding-right: 5px;
+}
+.stats-banner .stat-panel .stat-metric .metric-chart {
+  position: absolute;
+  top: 22px;
+  width: 100%;
+}
+.stats-banner .stat-panel .stat-metric .metric-subtext {
+  bottom: 7px;
+  color: #888888;
+  font-family: ProximaNova, Helvetica, Arial;
+  font-size: 11px;
+  position: absolute;
+  text-transform: lowercase;
+  width: 100%;
+}
+.stats-banner .stat-panel .stat-metric .metric-chart-text {
+  position: absolute;
+  top: 43px;
+  width: 100%;
+}
+.stats-banner .stat-panel .stat-metric .metric-chart-text.percent-offset {
+  left: 3px;
+  top: 41px;
+}
+.stats-banner .stat-panel .stat-metric .stat-secondary {
+  color: #888888;
+  font-family: ProximaNova, Helvetica, Arial;
+  font-size: 11px;
+  text-transform: lowercase;
+}
+.stats-banner .stat-panel .stat-metric .stat-carousel {
+  display: inline-block;
+  font-family: ProximaNova, Helvetica, Arial;
+  font-size: 12px;
+  margin-top: -20px;
+}
+.stats-banner .stat-panel .stat-metric .stat-carousel .rally-carousel-pane .x-box-inner {
+  top: 0px !important;
+}
+.stats-banner .stat-panel .stat-metric .stat-carousel .carousel > span {
+  display: inline !important;
+  width: auto !important;
+}
+.stats-banner .stat-panel .stat-metric .stat-carousel .carousel > span > div {
+  display: block !important;
+}
+.stats-banner .stat-panel .stat-metric .stat-carousel .carousel .carousel-panel > span {
+  display: inline !important;
+  width: auto !important;
+}
+.stats-banner .stat-panel .stat-metric .stat-carousel .carousel .carousel-panel > span > div {
+  display: block !important;
+}
+.stats-banner .stat-panel .chart .highcharts-container {
+  cursor: pointer;
+}
+.stats-banner .stat-panel .gauge .chart .highcharts-container {
+  cursor: default;
+}
+.stats-banner .stat-panel .header {
+  display: none;
+}
+.stats-banner .stat-panel.collapse-expand {
+  background-color: #f6f6f6;
+  width: 23px;
+}
+.stats-banner .stat-panel.collapse-expand .toggle-icon {
+  color: #c0c0c0;
+  font-size: 18px;
+  position: relative;
+  right: 1px;
+}
+.stats-banner .stat-panel.collapse-expand:hover {
+  cursor: pointer;
+}
+.stats-banner .stat-panel.collapse-expand:hover .toggle-icon {
+  color: #888888;
+}
+.stats-banner.collapsed .stat-panel {
+  height: 25px;
+  padding-top: 2px;
+}
+.stats-banner.collapsed .stat-panel .metric-icon {
+  color: #888888;
+  font-size: 14px;
+  padding-right: 5px;
+  vertical-align: middle;
+}
+.stats-banner.collapsed .stat-panel .stat-title {
+  color: #222222;
+  display: inline;
+  font-family: ProximaNovaSemiBold, Helvetica, Arial;
+  font-size: 12px;
+  vertical-align: middle;
+}
+.stats-banner.collapsed .stat-panel .stat-metric {
+  color: #888888;
+  display: inline;
+  font-family: ProximaNova, Helvetica, Arial;
+  font-size: 14px;
+  height: auto;
+  padding-top: auto;
+  padding-left: 10px;
+  vertical-align: middle;
+}
+.stats-banner.collapsed .stat-panel .stat-metric .stat-metric-secondary {
+  font-size: 11px;
+}
+.stats-banner.collapsed .stat-panel .stat-metric .metric-percent {
+  font-size: 10px;
+  vertical-align: super;
+}
+.pie-chart-legend {
+  color: #3E576F;
+  font-size: 12px;
+  padding: 5px;
+  border: 1px solid #909090;
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+}
+.pie-chart-legend .legend-swatch {
+  width: 17px;
+  height: 12px;
+  border: 1px solid #EEE;
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+  float: left;
+  margin: 0 3px 0 6px;
+}
+.pie-chart-legend .legend-swatch.defined-sample-swatch {
+  background: #E0E0E0;
+  /* light-gray */
+}
+.pie-chart-legend .legend-swatch.in-progress-sample-swatch {
+  background: #00a9e0;
+}
+.pie-chart-legend .legend-swatch.completed-sample-swatch {
+  background: #8dc63f;
+}
+.pie-chart-legend .legend-swatch.blocked-sample-swatch {
+  background: #EF3F35;
+  /* rally red */
+}
+.iteration-progress-dialog .carousel .carousel-panel .scroll-button span {
+  width: 45px;
+  height: 50px;
+  line-height: 46px;
+}
+.iteration-progress-dialog .carousel .carousel-panel .scroll-button span:hover {
+  background-color: #e6e6e6;
+  color: #666666;
+}
+.iteration-progress-toggle-button-group {
+  margin-bottom: 5px;
+}
+.x-gecko .stats-banner.collapsed .stat-panel .stat-metric {
+  line-height: 20px;
+  vertical-align: top;
+}
+.x-gecko .stats-banner.collapsed .stat-panel .stat-metric .metric-percent {
+  line-height: 10px;
+}
+.x-gecko.x-mac .stats-banner.collapsed .stat-panel .stat-metric {
+  line-height: 22px;
+}
+.app {
   /* Add app styles here */
 }
 

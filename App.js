@@ -12,17 +12,24 @@ Ext.define('IterationStatusHistory', {
       this.add({
         flex: 1,
         xtype: 'container',
-        layout: 'vbox',
-        items: [{
-          xtype: 'rallybutton',
-          iconCls: 'icon-right',
-          width: 27,
-          cls: 'rly-small secondary',
-          listeners: {
-            click: this._play,
-            scope: this
-          }
+        layout: {
+          type: 'vbox',
+          align: 'stretch'
         },
+        items: [
+          {
+            xtype: 'container',
+            items: [{
+              xtype: 'rallybutton',
+              iconCls: 'icon-right',
+              width: 27,
+              cls: 'rly-small secondary',
+              listeners: {
+                click: this._play,
+                scope: this
+              }
+            }]
+          },
         {
           xtype: 'container',
           itemId: 'chartContainer',
@@ -49,7 +56,7 @@ Ext.define('IterationStatusHistory', {
       Ext.create('Rally.data.wsapi.Store', {
         autoLoad: true,
         limit: Infinity,
-        fetch: ['StartDate', 'EndDate', 'ObjectID'],
+        fetch: ['StartDate', 'EndDate', 'ObjectID', 'PlannedVelocity'],
         model: 'Iteration',
         filters: [{
           property: 'Name',
@@ -57,11 +64,7 @@ Ext.define('IterationStatusHistory', {
         }],
         listeners: {
           load: function(store, data) {
-            if (data.length) {
-              promise.resolve(_.map(data, function(record) {
-                return record.get('ObjectID');
-              }));
-            }
+            promise.resolve(data);
           }
         }
       });
@@ -69,11 +72,15 @@ Ext.define('IterationStatusHistory', {
       return promise;
     },
 
-    _getSnapshotData: function(iterationOIDs) {
+    _getSnapshotData: function(iterationRecords) {
+      this.iterations = iterationRecords;
       var iteration = this.getContext().getTimeboxScope().getRecord();
       var startDate = iteration.get('StartDate');
       var endDate = iteration.get('EndDate');
       var dateSeries = this._getDateSeries(startDate, endDate);
+      var iterationOIDs = _.map(iterationRecords, function(iterationRecord) {
+        return iterationRecord.getId();
+      });
 
       Deft.Chain.parallel(_.map(dateSeries, function(date) {
         return function() {
@@ -145,7 +152,15 @@ Ext.define('IterationStatusHistory', {
     },
 
     _showCharts: function(data) {
-
+      if(this.down('statsbanner')) {
+        this.down('statsbanner').destroy();
+      }
+      this.down('#chartContainer').add({
+        xtype: 'statsbanner',
+        context: this.getContext(),
+        iterations: this.iterations,
+        snapshotData: data
+      });
     },
 
     _showBoard: function(data) {
