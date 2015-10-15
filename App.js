@@ -1,19 +1,43 @@
-Ext.define('CustomApp', {
-    extend: 'Rally.app.App',
+Ext.define('IterationStatusHistory', {
+    extend: 'Rally.app.TimeboxScopedApp',
     componentCls: 'app',
-    launch: function() {
-      this.add([{
-        xtype: 'rallyiterationcombobox',
-        id: 'iteration-picker',
-        listeners: {
-          change: this._onIterationChange,
-          scope: this
-        }
-      }]);
+    scopeType: 'iteration',
+    layout: {
+      type: 'vbox',
+      align: 'stretch'
     },
 
-    _onIterationChange: function(picker) {
-      var iterationName = picker.getRawValue();
+    launch: function() {
+      this.callParent(arguments);
+      this.add({
+        flex: 1,
+        xtype: 'container',
+        layout: 'vbox',
+        items: [{
+          xtype: 'rallybutton',
+          iconCls: 'icon-right',
+          width: 27,
+          cls: 'rly-small secondary',
+          listeners: {
+            click: this._play,
+            scope: this
+          }
+        },
+        {
+          xtype: 'container',
+          itemId: 'chartContainer',
+          height: 110
+        }, {
+          xtype: 'container',
+          itemId: 'boardContainer',
+          flex: 1
+        }]
+      });
+    },
+
+    onScopeChange: function() {
+      var iterationName = this.getContext().getTimeboxScope()
+        .getRecord().get('Name');
 
       this._getIterationOIDs(iterationName)
         .then(this._getSnapshotData.bind(this));
@@ -46,8 +70,7 @@ Ext.define('CustomApp', {
     },
 
     _getSnapshotData: function(iterationOIDs) {
-      var picker = Ext.getCmp('iteration-picker');
-      var iteration = picker.getRecord();
+      var iteration = this.getContext().getTimeboxScope().getRecord();
       var startDate = iteration.get('StartDate');
       var endDate = iteration.get('EndDate');
       var dateSeries = this._getDateSeries(startDate, endDate);
@@ -80,10 +103,11 @@ Ext.define('CustomApp', {
 
           return promise;
         };
-      })).then(function(snapshotData) {
-        debugger;
-      });
-
+      })).then((function(snapshotData) {
+        this.snapshotData = snapshotData;
+        console.log(snapshotData);
+        this._showData(0);
+      }).bind(this));
     },
 
     _getDateSeries: function(startDate, endDate) {
@@ -91,7 +115,7 @@ Ext.define('CustomApp', {
       var date = startDate;
       date.setHours(23, 59, 59);
 
-      while(date < endDate) {
+      while(date <= endDate) {
         if (date.getDay() !== 0 && date.getDay() !== 6) {
           dates.push(date);
         }
@@ -99,5 +123,32 @@ Ext.define('CustomApp', {
       }
 
       return dates;
+    },
+
+    _play: function() {
+      var index = 0;
+      this.interval = setInterval((function() {
+        this._showData(index);
+        index++;
+      }).bind(this), 3000);
+    },
+
+    _showData: function(index) {
+      var snapshotData = this.snapshotData[index];
+      if(snapshotData) {
+        this._showCharts(snapshotData);
+        this._showBoard(snapshotData);
+      } else {
+        clearInterval(this.interval);
+        delete this.interval;
+      }
+    },
+
+    _showCharts: function(data) {
+
+    },
+
+    _showBoard: function(data) {
+
     }
 });

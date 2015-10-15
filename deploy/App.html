@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Random App Name2298</title>
+    <title>Iteration Status History</title>
 
     <script type="text/javascript" src="/apps/2.0/sdk.js"></script>
 
     <script type="text/javascript">
         Rally.onReady(function () {
-                Ext.define("CustomApp",{extend:"Rally.app.TimeboxScopedApp",scopeType:"iteration",componentCls:"app",launch:function(){}});
+                Ext.define("IterationStatusHistory",{extend:"Rally.app.TimeboxScopedApp",componentCls:"app",scopeType:"iteration",layout:{type:"vbox",align:"stretch"},launch:function(){this.callParent(arguments),this.add({flex:1,xtype:"container",layout:"vbox",items:[{xtype:"rallybutton",iconCls:"icon-right",width:27,cls:"rly-small secondary",listeners:{click:this._play,scope:this}},{xtype:"container",itemId:"chartContainer",height:110},{xtype:"container",itemId:"boardContainer",flex:1}]})},onScopeChange:function(){var iterationName=this.getContext().getTimeboxScope().getRecord().get("Name");this._getIterationOIDs(iterationName).then(this._getSnapshotData.bind(this))},_getIterationOIDs:function(iterationName){var promise=Ext.create("Deft.Deferred");return Ext.create("Rally.data.wsapi.Store",{autoLoad:!0,limit:1/0,fetch:["StartDate","EndDate","ObjectID"],model:"Iteration",filters:[{property:"Name",value:iterationName}],listeners:{load:function(store,data){data.length&&promise.resolve(_.map(data,function(record){return record.get("ObjectID")}))}}}),promise},_getSnapshotData:function(iterationOIDs){var iteration=this.getContext().getTimeboxScope().getRecord(),startDate=iteration.get("StartDate"),endDate=iteration.get("EndDate"),dateSeries=this._getDateSeries(startDate,endDate);Deft.Chain.parallel(_.map(dateSeries,function(date){return function(){var promise=Ext.create("Deft.Deferred");return Ext.create("Rally.data.lookback.SnapshotStore",{autoLoad:!0,fetch:["Name","ScheduleState","FormattedID","PlanEstimate","Owner","Blocked","Ready","BlockedReason"],filters:[{property:"__At",value:Rally.util.DateTime.toIsoString(date)},{property:"_TypeHierarchy",operator:"in",value:["Defect","HierarchicalRequirement","TestSet","DefectSuite"]},{property:"Iteration",operator:"in",value:iterationOIDs}],listeners:{load:function(store,snapshots){promise.resolve(snapshots)}}}),promise}})).then(function(snapshotData){this.snapshotData=snapshotData,console.log(snapshotData),this._showData(0)}.bind(this))},_getDateSeries:function(startDate,endDate){var dates=[],date=startDate;for(date.setHours(23,59,59);endDate>=date;)0!==date.getDay()&&6!==date.getDay()&&dates.push(date),date=new Date(date.getTime()+864e5);return dates},_play:function(){var index=0;this.interval=setInterval(function(){this._showData(index),index++}.bind(this),3e3)},_showData:function(index){var snapshotData=this.snapshotData[index];snapshotData?(this._showCharts(snapshotData),this._showBoard(snapshotData)):(clearInterval(this.interval),delete this.interval)},_showCharts:function(data){},_showBoard:function(data){}});
 
-            Rally.launchApp('CustomApp', {
-                name:"Random App Name2298",
+            Rally.launchApp('IterationStatusHistory', {
+                name:"Iteration Status History",
 	            parentRepos:""
             });
 
