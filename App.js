@@ -89,13 +89,14 @@ Ext.define('IterationStatusHistory', {
           Ext.create('Rally.data.lookback.SnapshotStore', {
             autoLoad: true,
             fetch: ['Name', 'ScheduleState', 'FormattedID', 'PlanEstimate', 'Owner', 'Blocked', 'Ready', 'BlockedReason'],
+            hydrate: ['ScheduleState', 'State'],
             filters: [{
               property: '__At',
               value: Rally.util.DateTime.toIsoString(date)
             },{
               property: '_TypeHierarchy',
               operator: 'in',
-              value: ['Defect', 'HierarchicalRequirement', 'TestSet', 'DefectSuite']
+              value: ['Defect', 'HierarchicalRequirement', 'TestSet', 'DefectSuite', 'Task']
             },{
               property: 'Iteration',
               operator: 'in',
@@ -143,7 +144,7 @@ Ext.define('IterationStatusHistory', {
     _showData: function(index) {
       var snapshotData = this.snapshotData[index];
       if(snapshotData) {
-        this._showCharts(snapshotData);
+        this._showCharts(snapshotData, index);
         this._showBoard(snapshotData);
       } else {
         clearInterval(this.interval);
@@ -151,7 +152,7 @@ Ext.define('IterationStatusHistory', {
       }
     },
 
-    _showCharts: function(data) {
+    _showCharts: function(data, index) {
       if(this.down('statsbanner')) {
         this.down('statsbanner').destroy();
       }
@@ -159,7 +160,9 @@ Ext.define('IterationStatusHistory', {
         xtype: 'statsbanner',
         context: this.getContext(),
         iterations: this.iterations,
-        snapshotData: data
+        snapshotData: data,
+        day: index,
+        totalDays: this.snapshotData.length
       });
     },
 

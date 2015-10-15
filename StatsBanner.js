@@ -16,13 +16,17 @@
         config: {
             context: null,
             snapshotData: [],
-            iterations: []
+            iterations: [],
+            day: 0,
+            totalDays: 0
         },
 
         items: [
             {xtype: 'statsbannerplannedvelocity'},
-            {xtype: 'statsbannerplannedvelocity'},
-            {xtype: 'statsbannerplannedvelocity'}
+            {xtype: 'statsbannertimeboxend'},
+            {xtype: 'statsbanneraccepted'},
+            {xtype: 'statsbannerdefects'},
+            {xtype: 'statsbannertasks'}
         ],
 
 
@@ -38,7 +42,9 @@
                 flex: 1,
                 context: this.context,
                 snapshotData: this.snapshotData,
-                iterations: this.iterations
+                iterations: this.iterations,
+                day: this.day,
+                totalDays: this.totalDays
             };
         },
 
