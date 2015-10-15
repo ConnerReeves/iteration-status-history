@@ -45,19 +45,14 @@
 
         _getTaskCount: function() {
             var taskCount = 0;
-            _.each(this._snapshotData, function(record){
-                if(Rally.util.Ref.getTypeFromRef(record) === 'task') {
-                   var taskSummary = record.get('Summary') && record.get('Summary').Tasks;
-                    if (taskSummary) {
-                        _.each(taskSummary['state+blocked'], function(count, state) {
-                            if (!Ext.String.startsWith(state, 'Completed')) {
-                                taskCount += count;
-                            }
-                        }, this);
-                    } 
+            
+            _.each(this.snapshotData, function(record){
+                if(Rally.util.Ref.getTypeFromRef(record) === 'task' &&
+                    record.get('State') !== 'Completed') {
+                    taskCount += count;
                 }
-                
-            }, this);
+            });
+            
             return taskCount;
         }
     });

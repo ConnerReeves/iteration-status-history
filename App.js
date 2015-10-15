@@ -101,8 +101,9 @@ Ext.define('IterationStatusHistory', {
 
           Ext.create('Rally.data.lookback.SnapshotStore', {
             autoLoad: true,
-            fetch: ['_TypeHierarchy', 'Name', 'ScheduleState', 'FormattedID', 'PlanEstimate', 'Owner', 'Blocked', 'Ready', 'BlockedReason'],
+            fetch: ['_TypeHierarchy', 'Name', 'ScheduleState', 'FormattedID', 'PlanEstimate', 'Owner', 'Blocked', 'Ready', 'BlockedReason', 'State'],
             hydrate: ['ScheduleState', '_TypeHierarchy', 'Owner', 'State'],
+            limit: Infinity,
             filters: [{
               property: '__At',
               value: Rally.util.DateTime.toIsoString(date)
