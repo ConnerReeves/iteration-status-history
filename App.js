@@ -16,6 +16,16 @@ Ext.define('IterationStatusHistory', {
           type: 'vbox',
           align: 'stretch'
         },
+        items: [{
+          xtype: 'rallybutton',
+          iconCls: 'icon-right',
+          width: 27,
+          cls: 'rly-small secondary',
+          listeners: {
+            click: this._play,
+            scope: this
+          }
+        },
         items: [
           {
             xtype: 'container',
@@ -36,8 +46,23 @@ Ext.define('IterationStatusHistory', {
           height: 110
         }, {
           xtype: 'container',
-          itemId: 'boardContainer',
-          flex: 1
+          id: 'board-container',
+          flex: 1,
+          layout: 'fit',
+          items: [{
+            xtype: 'rallycardboard',
+            id: 'card-board',
+            attribute : 'ScheduleState',
+            types: ['Defect', 'HierarchicalRequirement', 'TestSet', 'DefectSuite'],
+            storeConfig : {
+              autoLoad: false
+            },
+            columnConfig: {
+              isMatchingRecord: function(record) {
+                return record.get(this.attribute) === this.getValue();
+              }
+            }
+          }]
         }]
       });
     },
@@ -88,7 +113,8 @@ Ext.define('IterationStatusHistory', {
 
           Ext.create('Rally.data.lookback.SnapshotStore', {
             autoLoad: true,
-            fetch: ['Name', 'ScheduleState', 'FormattedID', 'PlanEstimate', 'Owner', 'Blocked', 'Ready', 'BlockedReason'],
+            fetch: ['_TypeHierarchy', 'Name', 'ScheduleState', 'FormattedID', 'PlanEstimate', 'Owner', 'Blocked', 'Ready', 'BlockedReason'],
+            hydrate: ['ScheduleState', '_TypeHierarchy', 'Owner'],
             filters: [{
               property: '__At',
               value: Rally.util.DateTime.toIsoString(date)
@@ -103,6 +129,18 @@ Ext.define('IterationStatusHistory', {
             }],
             listeners: {
               load: function(store, snapshots) {
+                _.each(snapshots, function(snapshot) {
+                  debugger;
+                  snapshot.set('_id', snapshot.get('ObjectID'));
+                  snapshot.set('_ref', '/' + _.last(snapshot.get('_TypeHierarchy')).toLowerCase() + '/' + snapshot.get('ObjectID'));
+                  if (snapshot.get('Owner')) {
+                    snapshot.set('Owner', {
+                      _ref: '/user/' + snapshot.get('Owner'),
+                      _refObjectName: 'foo'
+                    });
+                  }
+                });
+
                 promise.resolve(snapshots);
               }
             }
@@ -164,6 +202,14 @@ Ext.define('IterationStatusHistory', {
     },
 
     _showBoard: function(data) {
+      var board = Ext.getCmp('card-board');
 
+      _.each(board.columnDefinitions, function(column) {
+        column.clearCards();
+      });
+
+      _.each(data, function(record) {
+        board.addCard(record);
+      });
     }
 });
