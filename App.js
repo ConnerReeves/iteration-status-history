@@ -17,30 +17,18 @@ Ext.define('IterationStatusHistory', {
           align: 'stretch'
         },
         items: [{
-          xtype: 'rallybutton',
-          iconCls: 'icon-right',
-          width: 27,
-          cls: 'rly-small secondary',
-          listeners: {
-            click: this._play,
-            scope: this
-          }
-        },
-        items: [
-          {
-            xtype: 'container',
-            items: [{
-              xtype: 'rallybutton',
-              iconCls: 'icon-right',
-              width: 27,
-              cls: 'rly-small secondary',
-              listeners: {
-                click: this._play,
-                scope: this
-              }
-            }]
-          },
-        {
+          xtype: 'container',
+          items: [{
+            xtype: 'rallybutton',
+            iconCls: 'icon-right',
+            width: 27,
+            cls: 'rly-small secondary',
+            listeners: {
+              click: this._play,
+              scope: this
+            }
+          }]
+        }, {
           xtype: 'container',
           itemId: 'chartContainer',
           height: 110
