@@ -284,11 +284,13 @@
                     return result;
                 }, {});
                 
-                _.each(snapshotData, function(snapshot) {
-                    var estimate = snapshot.get('PlanEstimate') || 0,
-                        state = snapshot.get('ScheduleState');
-                     points[state] += estimate;
-                });
+                if(day <= this.day) {
+                    _.each(snapshotData, function(snapshot) {
+                        var estimate = snapshot.get('PlanEstimate') || 0,
+                            state = snapshot.get('ScheduleState');
+                         points[state] += estimate;
+                    });
+                }
                 
                 _.each(this.scheduleStateValues, function(state) {
                     dataByState[state].data[day] = points[state];  
@@ -359,7 +361,9 @@
                     context: this.context,
                     allSnapshotData: this.allSnapshotData,
                     scheduleStateValues: this.scheduleStateValues,
-                    totalDays: this.totalDays
+                    totalDays: this.totalDays,
+                    day: this.day,
+                    displayTitle: 'Cumulative Flow'
                 }
             ];
         },
@@ -410,6 +414,7 @@
             }
 
             // this.carousel.on('carouselmove', this._chartShownChanged, this);
+            this._updateTitle(this.carousel);
         },
 
         _updateTitle: function(carousel){
@@ -970,7 +975,7 @@
           scope: this
         });
     },
-    
+
    _loadScheduleStateValues: function () {
       return Rally.data.ModelFactory.getModel({
           type: 'UserStory',
@@ -1024,7 +1029,7 @@
 
           Ext.create('Rally.data.lookback.SnapshotStore', {
             autoLoad: true,
-            fetch: ['_TypeHierarchy', 'Name', 'ScheduleState', 'FormattedID', 'PlanEstimate', 'Owner', 'Blocked', 'Ready', 'BlockedReason', 'State', 'Expedite'],
+            fetch: ['_TypeHierarchy', 'DisplayColor', 'Name', 'ScheduleState', 'FormattedID', 'PlanEstimate', 'Owner', 'Blocked', 'Ready', 'BlockedReason', 'State', 'Expedite'],
             hydrate: ['ScheduleState', '_TypeHierarchy', 'Owner', 'State'],
             limit: Infinity,
             filters: [{
