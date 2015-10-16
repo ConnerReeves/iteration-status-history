@@ -94,7 +94,7 @@ Ext.define('IterationStatusHistory', {
           scope: this
         });
     },
-    
+
    _loadScheduleStateValues: function () {
       return Rally.data.ModelFactory.getModel({
           type: 'UserStory',
@@ -148,7 +148,7 @@ Ext.define('IterationStatusHistory', {
 
           Ext.create('Rally.data.lookback.SnapshotStore', {
             autoLoad: true,
-            fetch: ['_TypeHierarchy', 'Name', 'ScheduleState', 'FormattedID', 'PlanEstimate', 'Owner', 'Blocked', 'Ready', 'BlockedReason', 'State', 'Expedite'],
+            fetch: ['_TypeHierarchy', 'DisplayColor', 'Name', 'ScheduleState', 'FormattedID', 'PlanEstimate', 'Owner', 'Blocked', 'Ready', 'BlockedReason', 'State', 'Expedite'],
             hydrate: ['ScheduleState', '_TypeHierarchy', 'Owner', 'State'],
             limit: Infinity,
             filters: [{
