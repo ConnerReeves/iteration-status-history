@@ -228,6 +228,8 @@ Ext.define('IterationStatusHistory', {
     _play: function() {
       if (this.snapshotIndex >= this.snapshotData.length) {
         this.snapshotIndex = 0;
+      } else {
+        this.snapshotIndex++;
       }
 
       this._showData(this.snapshotIndex);
