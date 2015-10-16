@@ -63,11 +63,13 @@
                     return result;
                 }, {});
                 
-                _.each(snapshotData, function(snapshot) {
-                    var estimate = snapshot.get('PlanEstimate') || 0,
-                        state = snapshot.get('ScheduleState');
-                     points[state] += estimate;
-                });
+                if(day <= this.day) {
+                    _.each(snapshotData, function(snapshot) {
+                        var estimate = snapshot.get('PlanEstimate') || 0,
+                            state = snapshot.get('ScheduleState');
+                         points[state] += estimate;
+                    });
+                }
                 
                 _.each(this.scheduleStateValues, function(state) {
                     dataByState[state].data[day] = points[state];  

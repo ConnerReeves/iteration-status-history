@@ -55,7 +55,9 @@
                     context: this.context,
                     allSnapshotData: this.allSnapshotData,
                     scheduleStateValues: this.scheduleStateValues,
-                    totalDays: this.totalDays
+                    totalDays: this.totalDays,
+                    day: this.day,
+                    displayTitle: 'Cumulative Flow'
                 }
             ];
         },
@@ -106,6 +108,7 @@
             }
 
             // this.carousel.on('carouselmove', this._chartShownChanged, this);
+            this._updateTitle(this.carousel);
         },
 
         _updateTitle: function(carousel){
