@@ -122,6 +122,10 @@ Ext.define('IterationStatusHistory', {
               operator: 'in',
               value: iterationOIDs
             }],
+            sorters: [{
+              property: 'ObjectID',
+              direction: 'ASC'
+            }],
             listeners: {
               load: function(store, snapshots) {
                 promise.resolve(snapshots);
@@ -215,7 +219,7 @@ Ext.define('IterationStatusHistory', {
       var snapshotData = this.snapshotData[index];
       if(snapshotData) {
         this._showCharts(snapshotData, index);
-        this._showBoard(snapshotData);
+        this._showBoard(snapshotData, index !== 0);
       } else {
         clearInterval(this.interval);
         delete this.interval;
@@ -236,15 +240,23 @@ Ext.define('IterationStatusHistory', {
       });
     },
 
-    _showBoard: function(data) {
+    _showBoard: function(data, flair) {
       var board = Ext.getCmp('card-board');
+      var columnNames = _.pluck(board.columnDefinitions, 'value');
+      var existingCardOIDs = _.map(board.columnDefinitions, function() {
+        return [];
+      });
 
-      _.each(board.columnDefinitions, function(column) {
+      _.each(board.columnDefinitions, function(column, idx) {
+        existingCardOIDs[idx] = _.map(column.getCards(), function(card) {
+          return card.getRecord().get('ObjectID');
+        });
         column.clearCards();
       });
 
       _.each(data, function(record) {
-        board.addCard(record);
+        var newCardIndex = columnNames.indexOf(record.get(board.attribute));
+        board.addCard(record, flair && !_.contains(existingCardOIDs[newCardIndex], record.get('ObjectID')));
       });
     }
 });
