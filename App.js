@@ -37,6 +37,7 @@ Ext.define('IterationStatusHistory', {
           id: 'board-container',
           flex: 1,
           layout: 'fit',
+          margin: '20px 0 0 0',
           items: [{
             xtype: 'rallycardboard',
             id: 'card-board',
@@ -65,8 +66,30 @@ Ext.define('IterationStatusHistory', {
       var iterationName = this.getContext().getTimeboxScope()
         .getRecord().get('Name');
 
-      this._getIterationOIDs(iterationName)
-        .then(this._getSnapshotData.bind(this));
+      Deft.Promise.all([
+        this._getIterationOIDs(iterationName),
+        this._loadScheduleStateValues()
+        ]).then({
+          success: function(results) {
+            this._getSnapshotData(results[0]);
+          },
+          scope: this
+        });
+    },
+    
+   _loadScheduleStateValues: function () {
+      return Rally.data.ModelFactory.getModel({
+          type: 'UserStory',
+          success: function (model) {
+              model.getField('ScheduleState').getAllowedValueStore().load({
+                  callback: function (records) {
+                      this.scheduleStateValues = _.invoke(records, 'get', 'StringValue');
+                  },
+                  scope: this
+              });
+          },
+          scope: this
+      });
     },
 
     _getIterationOIDs: function(iterationName) {
@@ -232,7 +255,9 @@ Ext.define('IterationStatusHistory', {
         iterations: this.iterations,
         snapshotData: data,
         day: index,
-        totalDays: this.snapshotData.length
+        totalDays: this.snapshotData.length,
+        allSnapshotData: this.snapshotData,
+        scheduleStateValues: this.scheduleStateValues
       });
     },
 

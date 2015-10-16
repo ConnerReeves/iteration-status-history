@@ -25,7 +25,8 @@
             {xtype: 'statsbannerplannedvelocity'},
             {xtype: 'statsbannertimeboxend'},
             {xtype: 'statsbanneraccepted'},
-            {xtype: 'statsbannerdefects'}
+            {xtype: 'statsbannerdefects'},
+            {xtype: 'statsbanneriterationprogress'}
         ],
 
 
@@ -43,7 +44,9 @@
                 snapshotData: this.snapshotData,
                 iterations: this.iterations,
                 day: this.day,
-                totalDays: this.totalDays
+                totalDays: this.totalDays,
+                allSnapshotData: this.allSnapshotData,
+                scheduleStateValues: this.scheduleStateValues
             };
         },
 
