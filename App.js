@@ -7,6 +7,8 @@ Ext.define('IterationStatusHistory', {
       align: 'stretch'
     },
 
+    snapshotIndex: 0,
+
     launch: function() {
       this.callParent(arguments);
       this.add({
@@ -21,10 +23,21 @@ Ext.define('IterationStatusHistory', {
           items: [{
             xtype: 'rallybutton',
             iconCls: 'icon-right',
-            width: 27,
+            width: 32,
+            margin: '10 0 10 10',
             cls: 'rly-small secondary',
             listeners: {
               click: this._play,
+              scope: this
+            }
+          },{
+            xtype: 'rallybutton',
+            iconCls: 'icon-pause',
+            width: 32,
+            margin: '10 0 10 10',
+            cls: 'rly-small secondary',
+            listeners: {
+              click: this._pause,
               scope: this
             }
           }]
@@ -208,11 +221,20 @@ Ext.define('IterationStatusHistory', {
     },
 
     _play: function() {
-      var index = 0;
+      if (this.snapshotIndex >= this.snapshotData.length) {
+        this.snapshotIndex = 0;
+      }
+
+      this._showData(this.snapshotIndex);
       this.interval = setInterval((function() {
-        this._showData(index);
-        index++;
+        this.snapshotIndex++;
+        this._showData(this.snapshotIndex);
       }).bind(this), 3000);
+    },
+
+    _pause: function() {
+      clearInterval(this.interval);
+      delete this.interval;
     },
 
     _showData: function(index) {
@@ -221,8 +243,7 @@ Ext.define('IterationStatusHistory', {
         this._showCharts(snapshotData, index);
         this._showBoard(snapshotData, index !== 0);
       } else {
-        clearInterval(this.interval);
-        delete this.interval;
+        this._pause();
       }
     },
 
