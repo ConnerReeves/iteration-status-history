@@ -7,6 +7,8 @@ Ext.define('IterationStatusHistory', {
       align: 'stretch'
     },
 
+    snapshotIndex: 0,
+
     launch: function() {
       this.callParent(arguments);
       this.add({
@@ -18,15 +20,31 @@ Ext.define('IterationStatusHistory', {
         },
         items: [{
           xtype: 'container',
+          width: 600,
           items: [{
             xtype: 'rallybutton',
             iconCls: 'icon-right',
-            width: 27,
+            width: 32,
+            margin: '10 0 10 10',
             cls: 'rly-small secondary',
             listeners: {
               click: this._play,
               scope: this
             }
+          },{
+            xtype: 'rallybutton',
+            iconCls: 'icon-pause',
+            width: 32,
+            margin: '10 0 10 10',
+            cls: 'rly-small secondary',
+            listeners: {
+              click: this._pause,
+              scope: this
+            }
+          },{
+            xtype: 'container',
+            margin: '10',
+            id: 'date-display'
           }]
         }, {
           xtype: 'container',
@@ -119,12 +137,12 @@ Ext.define('IterationStatusHistory', {
       var iteration = this.getContext().getTimeboxScope().getRecord();
       var startDate = iteration.get('StartDate');
       var endDate = iteration.get('EndDate');
-      var dateSeries = this._getDateSeries(startDate, endDate);
+      this.dateSeries = this._getDateSeries(startDate, endDate);
       var iterationOIDs = _.map(iterationRecords, function(iterationRecord) {
         return iterationRecord.getId();
       });
 
-      Deft.Chain.parallel(_.map(dateSeries, function(date) {
+      Deft.Chain.parallel(_.map(this.dateSeries, function(date) {
         return function() {
           var promise = Ext.create('Deft.Deferred');
 
@@ -144,6 +162,10 @@ Ext.define('IterationStatusHistory', {
               property: 'Iteration',
               operator: 'in',
               value: iterationOIDs
+            }],
+            sorters: [{
+              property: 'ObjectID',
+              direction: 'ASC'
             }],
             listeners: {
               load: function(store, snapshots) {
@@ -227,22 +249,39 @@ Ext.define('IterationStatusHistory', {
     },
 
     _play: function() {
-      var index = 0;
+      if (this.snapshotIndex >= this.snapshotData.length) {
+        this.snapshotIndex = 0;
+      } else {
+        this.snapshotIndex++;
+      }
+
+      this._showData(this.snapshotIndex);
       this.interval = setInterval((function() {
-        this._showData(index);
-        index++;
+        this.snapshotIndex++;
+        this._showData(this.snapshotIndex);
       }).bind(this), 3000);
+    },
+
+    _pause: function() {
+      clearInterval(this.interval);
+      delete this.interval;
     },
 
     _showData: function(index) {
       var snapshotData = this.snapshotData[index];
       if(snapshotData) {
+        this._displayCurrentDate(this.dateSeries[index]);
         this._showCharts(snapshotData, index);
-        this._showBoard(snapshotData);
+        this._showBoard(snapshotData, index !== 0);
       } else {
-        clearInterval(this.interval);
-        delete this.interval;
+        this._pause();
       }
+    },
+
+    _displayCurrentDate: function(date) {
+      var dateContainer = Ext.getCmp('date-display');
+      var formattedDate = Rally.util.DateTime.format(date, 'l, M dd, Y');
+      dateContainer.update(formattedDate);
     },
 
     _showCharts: function(data, index) {
@@ -261,15 +300,23 @@ Ext.define('IterationStatusHistory', {
       });
     },
 
-    _showBoard: function(data) {
+    _showBoard: function(data, flair) {
       var board = Ext.getCmp('card-board');
+      var columnNames = _.pluck(board.columnDefinitions, 'value');
+      var existingCardOIDs = _.map(board.columnDefinitions, function() {
+        return [];
+      });
 
-      _.each(board.columnDefinitions, function(column) {
+      _.each(board.columnDefinitions, function(column, idx) {
+        existingCardOIDs[idx] = _.map(column.getCards(), function(card) {
+          return card.getRecord().get('ObjectID');
+        });
         column.clearCards();
       });
 
       _.each(data, function(record) {
-        board.addCard(record);
+        var newCardIndex = columnNames.indexOf(record.get(board.attribute));
+        board.addCard(record, flair && !_.contains(existingCardOIDs[newCardIndex], record.get('ObjectID')));
       });
     }
 });
