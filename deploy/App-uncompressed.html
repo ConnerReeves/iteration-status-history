@@ -11,65 +11,6 @@
     var Ext = window.Ext4 || window.Ext;
 
     /**
-     * shows completed tasks for timebox
-     */
-    Ext.define('Tasks', {
-        extend: 'Ext.Component',
-        alias:'widget.statsbannertasks',
-        requires: [],
-
-        config: {
-            context: null,
-            store: null,
-            data: {
-                count: 0
-            }
-        },
-
-        tpl: [
-            '<div class="expanded-widget">',
-            '<div class="stat-title">Tasks</div>',
-            '<div class="stat-metric">',
-            '<span class="metric-icon icon-task"></span>{count}',
-            '<div class="stat-secondary">Active</div>',
-            '</div>',
-            '</div>',
-            '<div class="collapsed-widget">',
-            '<span class="metric-icon icon-task"></span>',
-            '<div class="stat-title">Tasks</div>',
-            '<div class="stat-metric">{count}</div>',
-            '</div>'
-        ],
-        
-        cls: "stat-panel",
-
-        onRender: function(){
-          this.callParent(arguments);
-          this.update(this._getRenderData());  
-        },
-
-        _getRenderData: function() {
-            return {count: this._getTaskCount()};
-        },
-
-        _getTaskCount: function() {
-            var taskCount = 0;
-            
-            _.each(this.snapshotData, function(record){
-                if(Rally.util.Ref.getTypeFromRef(record) === 'task' &&
-                    record.get('State') !== 'Completed') {
-                    taskCount += count;
-                }
-            });
-            
-            return taskCount;
-        }
-    });
-})();
-                (function() {
-    var Ext = window.Ext4 || window.Ext;
-
-    /**
      * shows defects active for timebox
      */
     Ext.define('Defects', {
@@ -682,8 +623,7 @@
             {xtype: 'statsbannerplannedvelocity'},
             {xtype: 'statsbannertimeboxend'},
             {xtype: 'statsbanneraccepted'},
-            {xtype: 'statsbannerdefects'},
-            {xtype: 'statsbannertasks'}
+            {xtype: 'statsbannerdefects'}
         ],
 
 
@@ -765,6 +705,12 @@
               isMatchingRecord: function(record) {
                 return record.get(this.attribute) === this.getValue();
               }
+            },
+            cardConfig: {
+              fields: ['PlanEstimate']
+            },
+            rowConfig: {
+              field: 'Expedite'
             }
           }]
         }]
@@ -817,7 +763,7 @@
 
           Ext.create('Rally.data.lookback.SnapshotStore', {
             autoLoad: true,
-            fetch: ['_TypeHierarchy', 'Name', 'ScheduleState', 'FormattedID', 'PlanEstimate', 'Owner', 'Blocked', 'Ready', 'BlockedReason', 'State'],
+            fetch: ['_TypeHierarchy', 'Name', 'ScheduleState', 'FormattedID', 'PlanEstimate', 'Owner', 'Blocked', 'Ready', 'BlockedReason', 'State', 'Expedite'],
             hydrate: ['ScheduleState', '_TypeHierarchy', 'Owner', 'State'],
             limit: Infinity,
             filters: [{
@@ -826,7 +772,7 @@
             },{
               property: '_TypeHierarchy',
               operator: 'in',
-              value: ['Defect', 'HierarchicalRequirement', 'TestSet', 'DefectSuite', 'Task']
+              value: ['Defect', 'HierarchicalRequirement', 'TestSet', 'DefectSuite']
             },{
               property: 'Iteration',
               operator: 'in',
@@ -834,18 +780,6 @@
             }],
             listeners: {
               load: function(store, snapshots) {
-                _.each(snapshots, function(snapshot) {
-                  debugger;
-                  snapshot.set('_id', snapshot.get('ObjectID'));
-                  snapshot.set('_ref', '/' + _.last(snapshot.get('_TypeHierarchy')).toLowerCase() + '/' + snapshot.get('ObjectID'));
-                  if (snapshot.get('Owner')) {
-                    snapshot.set('Owner', {
-                      _ref: '/user/' + snapshot.get('Owner'),
-                      _refObjectName: 'foo'
-                    });
-                  }
-                });
-
                 promise.resolve(snapshots);
               }
             }
@@ -854,10 +788,60 @@
           return promise;
         };
       })).then((function(snapshotData) {
-        this.snapshotData = snapshotData;
-        console.log(snapshotData);
-        this._showData(0);
+        var userOIDs = _.unique(_.compact(_.flatten(_.map(snapshotData, function(snapshots) {
+          return _.map(snapshots, function(snapshot) {
+            return snapshot.get('Owner');
+          });
+        }))));
+
+        this._getUserNameMap(userOIDs).then((function(userNameMap) {
+          _.each(snapshotData, function(snapshots) {
+            _.each(snapshots, function(snapshot) {
+              snapshot.set('_id', snapshot.get('ObjectID'));
+              snapshot.set('_ref', '/' + _.last(snapshot.get('_TypeHierarchy')).toLowerCase() + '/' + snapshot.get('ObjectID'));
+              if (snapshot.get('Owner')) {
+                snapshot.set('Owner', {
+                  _ref: '/user/' + snapshot.get('Owner'),
+                  _refObjectName: userNameMap[snapshot.get('Owner')]
+                });
+              }
+            });
+          });
+
+          this.snapshotData = snapshotData;
+          this._showData(0);
+        }).bind(this));
       }).bind(this));
+    },
+
+    _getUserNameMap: function(userOIDs) {
+      var promise = Ext.create('Deft.Deferred');
+
+      Ext.create('Rally.data.wsapi.Store', {
+        autoLoad: true,
+        limit: Infinity,
+        model: 'User',
+        fetch: ['DisplayName'],
+        filters: Rally.data.QueryFilter.or(_.map(userOIDs, function(OID) {
+          return {
+            property: 'ObjectID',
+            value: OID
+          };
+        })),
+        listeners: {
+          load: function(store, data) {
+            var userNameMap = _.reduce(data, function(map, user) {
+              map[user.get('ObjectID')] = user.get('_refObjectName');
+
+              return map;
+            }, {});
+
+            promise.resolve(userNameMap);
+          }
+        }
+      });
+
+      return promise;
     },
 
     _getDateSeries: function(startDate, endDate) {

@@ -49,6 +49,12 @@ Ext.define('IterationStatusHistory', {
               isMatchingRecord: function(record) {
                 return record.get(this.attribute) === this.getValue();
               }
+            },
+            cardConfig: {
+              fields: ['PlanEstimate']
+            },
+            rowConfig: {
+              field: 'Expedite'
             }
           }]
         }]
@@ -101,7 +107,7 @@ Ext.define('IterationStatusHistory', {
 
           Ext.create('Rally.data.lookback.SnapshotStore', {
             autoLoad: true,
-            fetch: ['_TypeHierarchy', 'Name', 'ScheduleState', 'FormattedID', 'PlanEstimate', 'Owner', 'Blocked', 'Ready', 'BlockedReason', 'State'],
+            fetch: ['_TypeHierarchy', 'Name', 'ScheduleState', 'FormattedID', 'PlanEstimate', 'Owner', 'Blocked', 'Ready', 'BlockedReason', 'State', 'Expedite'],
             hydrate: ['ScheduleState', '_TypeHierarchy', 'Owner', 'State'],
             limit: Infinity,
             filters: [{
@@ -110,7 +116,7 @@ Ext.define('IterationStatusHistory', {
             },{
               property: '_TypeHierarchy',
               operator: 'in',
-              value: ['Defect', 'HierarchicalRequirement', 'TestSet', 'DefectSuite', 'Task']
+              value: ['Defect', 'HierarchicalRequirement', 'TestSet', 'DefectSuite']
             },{
               property: 'Iteration',
               operator: 'in',
@@ -169,7 +175,7 @@ Ext.define('IterationStatusHistory', {
         listeners: {
           load: function(store, data) {
             var userNameMap = _.reduce(data, function(map, user) {
-              map[user.get('ObjectID')] = user.get('DisplayName');
+              map[user.get('ObjectID')] = user.get('_refObjectName');
 
               return map;
             }, {});

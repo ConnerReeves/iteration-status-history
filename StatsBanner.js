@@ -25,8 +25,7 @@
             {xtype: 'statsbannerplannedvelocity'},
             {xtype: 'statsbannertimeboxend'},
             {xtype: 'statsbanneraccepted'},
-            {xtype: 'statsbannerdefects'},
-            {xtype: 'statsbannertasks'}
+            {xtype: 'statsbannerdefects'}
         ],
 
 
