@@ -118,18 +118,6 @@ Ext.define('IterationStatusHistory', {
             }],
             listeners: {
               load: function(store, snapshots) {
-                _.each(snapshots, function(snapshot) {
-                  debugger;
-                  snapshot.set('_id', snapshot.get('ObjectID'));
-                  snapshot.set('_ref', '/' + _.last(snapshot.get('_TypeHierarchy')).toLowerCase() + '/' + snapshot.get('ObjectID'));
-                  if (snapshot.get('Owner')) {
-                    snapshot.set('Owner', {
-                      _ref: '/user/' + snapshot.get('Owner'),
-                      _refObjectName: 'foo'
-                    });
-                  }
-                });
-
                 promise.resolve(snapshots);
               }
             }
@@ -138,10 +126,60 @@ Ext.define('IterationStatusHistory', {
           return promise;
         };
       })).then((function(snapshotData) {
-        this.snapshotData = snapshotData;
-        console.log(snapshotData);
-        this._showData(0);
+        var userOIDs = _.unique(_.compact(_.flatten(_.map(snapshotData, function(snapshots) {
+          return _.map(snapshots, function(snapshot) {
+            return snapshot.get('Owner');
+          });
+        }))));
+
+        this._getUserNameMap(userOIDs).then((function(userNameMap) {
+          _.each(snapshotData, function(snapshots) {
+            _.each(snapshots, function(snapshot) {
+              snapshot.set('_id', snapshot.get('ObjectID'));
+              snapshot.set('_ref', '/' + _.last(snapshot.get('_TypeHierarchy')).toLowerCase() + '/' + snapshot.get('ObjectID'));
+              if (snapshot.get('Owner')) {
+                snapshot.set('Owner', {
+                  _ref: '/user/' + snapshot.get('Owner'),
+                  _refObjectName: userNameMap[snapshot.get('Owner')]
+                });
+              }
+            });
+          });
+
+          this.snapshotData = snapshotData;
+          this._showData(0);
+        }).bind(this));
       }).bind(this));
+    },
+
+    _getUserNameMap: function(userOIDs) {
+      var promise = Ext.create('Deft.Deferred');
+
+      Ext.create('Rally.data.wsapi.Store', {
+        autoLoad: true,
+        limit: Infinity,
+        model: 'User',
+        fetch: ['DisplayName'],
+        filters: Rally.data.QueryFilter.or(_.map(userOIDs, function(OID) {
+          return {
+            property: 'ObjectID',
+            value: OID
+          };
+        })),
+        listeners: {
+          load: function(store, data) {
+            var userNameMap = _.reduce(data, function(map, user) {
+              map[user.get('ObjectID')] = user.get('DisplayName');
+
+              return map;
+            }, {});
+
+            promise.resolve(userNameMap);
+          }
+        }
+      });
+
+      return promise;
     },
 
     _getDateSeries: function(startDate, endDate) {
